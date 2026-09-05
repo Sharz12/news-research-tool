@@ -1,10 +1,19 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from newsapi import NewsApiClient
+from newsapi.newsapi_exception import NewsAPIException
 
 from config.settings import NEWSAPI_KEY
+from src.news.exceptions import (
+    NewsAPIAuthenticationError,
+    NewsAPIRequestError,
+    NewsAPIResponseError,
+)
 from src.news.models import NewsArticle
+
+logger = logging.getLogger(__name__)
 
 
 class NewsClient:
@@ -35,18 +44,70 @@ class NewsClient:
         to_date = datetime.now(timezone.utc)
         from_date = to_date - timedelta(days=days_back)
 
-        response = self.client.get_everything(
-            q=query,
-            language="en",
-            sort_by="relevancy",
-            page_size=page_size,
-            from_param=from_date.strftime("%Y-%m-%d"),
-            to=to_date.strftime("%Y-%m-%d"),
+        try:
+            logger.info(
+                "Searching NewsAPI: query=%r page_size=%d days_back=%d",
+                query,
+                page_size,
+                days_back,
+            )
+
+            response = self.client.get_everything(
+                q=query,
+                language="en",
+                sort_by="relevancy",
+                page_size=page_size,
+                from_param=from_date.strftime("%Y-%m-%d"),
+                to=to_date.strftime("%Y-%m-%d"),
+            )
+
+        except NewsAPIException as exc:
+            logger.error("NewsAPI request failed: %s", exc)
+
+            message = str(exc).lower()
+
+            if any(
+                keyword in message
+                for keyword in (
+                    "apikey",
+                    "api key",
+                    "unauthorized",
+                    "authentication",
+                )
+            ):
+                raise NewsAPIAuthenticationError(
+                    "NewsAPI authentication failed."
+                ) from exc
+
+            raise NewsAPIRequestError(
+                "NewsAPI request failed."
+            ) from exc
+
+        except Exception as exc:
+            logger.exception("Unexpected NewsAPI error")
+
+            raise NewsAPIRequestError(
+                "Unexpected error while contacting NewsAPI."
+            ) from exc
+
+        if not isinstance(response, dict):
+            raise NewsAPIResponseError(
+                "NewsAPI returned an invalid response."
+            )
+
+        articles = response.get("articles")
+
+        if not isinstance(articles, list):
+            raise NewsAPIResponseError(
+                "NewsAPI response does not contain a valid articles list."
+            )
+
+        logger.info(
+            "NewsAPI returned %d raw articles.",
+            len(articles),
         )
 
-        return self._parse_articles(
-            response.get("articles", [])
-        )
+        return self._parse_articles(articles)
 
     @staticmethod
     def _parse_articles(
@@ -73,7 +134,11 @@ class NewsClient:
 
                 validated_articles.append(news_article)
 
-            except Exception:
-                continue
+            except Exception as exc:
+                logger.warning(
+                    "Skipping invalid article: %s",
+                    exc,
+                )
 
         return validated_articles
+    
