@@ -15,13 +15,15 @@ ENV_FILE = PROJECT_ROOT / ".env"
 load_dotenv(dotenv_path=ENV_FILE, override=True)
 
 
-GROK_API_KEY = os.getenv("GROK_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY")
+GROQ_MODEL = os.getenv("GROQ_MODEL")
 
 
-if not GROK_API_KEY:
+
+if not GROQ_API_KEY:
     raise ValueError(
-        "GROK_API_KEY is missing. "
+        "GROQ_API_KEY is missing. "
         "Add it to the .env file."
     )
 
