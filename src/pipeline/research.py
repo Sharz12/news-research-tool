@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from src.llm.client import GroqClient
 from src.news.client import NewsClient
 from src.news.models import NewsArticle
-
+from src.processing.articles import format_articles
 
 @dataclass
 class ResearchResult:
@@ -68,17 +68,7 @@ class ResearchPipeline:
     ) -> str:
         """Build the research prompt sent to the LLM."""
 
-        article_text = "\n\n".join(
-            (
-                f"Article {index}:\n"
-                f"Title: {article.title}\n"
-                f"Source: {article.source_name}\n"
-                f"Published: {article.published_at}\n"
-                f"Description: {article.description or 'N/A'}\n"
-                f"Content: {article.content or 'N/A'}\n"
-            )
-            for index, article in enumerate(articles, start=1)
-        )
+        article_text = format_articles(articles)
 
         return f"""
 You are an AI assistant helping an equity research analyst.
@@ -92,7 +82,8 @@ Focus on:
 - Potential business or market implications
 - Important differences or conflicting information between articles
 
-Do not invent information that is not supported by the articles.
+Use only information supported by the provided articles.
+Do not invent facts, numbers, events, or conclusions.
 
 User Query:
 {query}
