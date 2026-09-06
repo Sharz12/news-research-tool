@@ -93,7 +93,5 @@ if st.button("🔍 Research News", type="primary"):
             except Exception as exc:
                 st.error(
                     "Something went wrong while researching the news."
+                    "Please try again or use a different research query."
                 )
-
-                st.exception(exc)
-
