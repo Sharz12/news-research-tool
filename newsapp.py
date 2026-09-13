@@ -2,6 +2,10 @@ import html
 
 import streamlit as st
 
+from src.export.reports import (
+    build_articles_csv,
+    build_research_report,
+)
 from src.pipeline.research import ResearchPipeline
 
 
@@ -17,12 +21,30 @@ st.set_page_config(
 
 
 # =========================================================
+# SESSION STATE
+# =========================================================
+
+if "research_result" not in st.session_state:
+    st.session_state.research_result = None
+
+if "research_language" not in st.session_state:
+    st.session_state.research_language = "English"
+
+if "period_label" not in st.session_state:
+    st.session_state.period_label = "All available history"
+
+
+# =========================================================
 # CUSTOM CSS
 # =========================================================
 
 st.markdown(
     """
 <style>
+
+    /* =====================================================
+       GLOBAL APP
+       ===================================================== */
 
     .stApp {
         background: #07111f;
@@ -67,6 +89,11 @@ st.markdown(
         color: #8fa3bb !important;
     }
 
+
+    /* =====================================================
+       HERO
+       ===================================================== */
+
     .hero-box {
         background: #0d1b2e;
         border: 1px solid #1d3654;
@@ -104,6 +131,11 @@ st.markdown(
         max-width: 850px;
     }
 
+
+    /* =====================================================
+       SECTION LABELS
+       ===================================================== */
+
     .section-label {
         color: #6ed6ff;
         font-size: 0.78rem;
@@ -113,6 +145,11 @@ st.markdown(
         margin-top: 12px;
         margin-bottom: 12px;
     }
+
+
+    /* =====================================================
+       SEARCH INPUT
+       ===================================================== */
 
     div[data-testid="stTextInput"] input {
         background: #0d1b2e;
@@ -131,6 +168,11 @@ st.markdown(
     div[data-testid="stTextInput"] input::placeholder {
         color: #70859e;
     }
+
+
+    /* =====================================================
+       NORMAL BUTTONS
+       ===================================================== */
 
     .stButton > button {
         background: #10243a;
@@ -159,6 +201,51 @@ st.markdown(
         border-color: #6ed6ff;
     }
 
+
+    /* =====================================================
+       DOWNLOAD BUTTONS
+       ===================================================== */
+
+    div[data-testid="stDownloadButton"] > button {
+        background: #10243a !important;
+        color: #dcecff !important;
+        border: 1px solid #294b6b !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        min-height: 46px !important;
+    }
+
+    div[data-testid="stDownloadButton"] > button:hover {
+        background: #16324e !important;
+        color: #ffffff !important;
+        border-color: #4fc3f7 !important;
+    }
+
+
+    /* =====================================================
+       ARTICLE LINK BUTTONS
+       ===================================================== */
+
+    div[data-testid="stLinkButton"] > a {
+        background: #10243a !important;
+        color: #dcecff !important;
+        border: 1px solid #294b6b !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        min-height: 44px !important;
+    }
+
+    div[data-testid="stLinkButton"] > a:hover {
+        background: #16324e !important;
+        color: #ffffff !important;
+        border-color: #4fc3f7 !important;
+    }
+
+
+    /* =====================================================
+       SELECT BOXES
+       ===================================================== */
+
     div[data-baseweb="select"] > div {
         background: #0d1b2e;
         border-color: #29435f;
@@ -170,9 +257,19 @@ st.markdown(
         color: #e8eef7;
     }
 
+
+    /* =====================================================
+       SLIDER
+       ===================================================== */
+
     [data-testid="stSlider"] {
         color: #6ed6ff;
     }
+
+
+    /* =====================================================
+       EXPANDER
+       ===================================================== */
 
     [data-testid="stExpander"] {
         background: #0b1727;
@@ -183,6 +280,11 @@ st.markdown(
     [data-testid="stExpander"] summary {
         color: #dce7f4;
     }
+
+
+    /* =====================================================
+       METRIC CARDS
+       ===================================================== */
 
     .metric-card {
         background: #0d1b2e;
@@ -208,6 +310,11 @@ st.markdown(
         line-height: 1.25;
     }
 
+
+    /* =====================================================
+       SUMMARY
+       ===================================================== */
+
     .summary-card {
         background: #0d1b2e;
         border: 1px solid #24547a;
@@ -232,6 +339,11 @@ st.markdown(
         font-size: 1.35rem;
         font-weight: 800;
     }
+
+
+    /* =====================================================
+       RESEARCH OUTPUT
+       ===================================================== */
 
     .research-output {
         color: #cbd7e6;
@@ -265,6 +377,11 @@ st.markdown(
         color: #f8fafc;
         font-weight: 750;
     }
+
+
+    /* =====================================================
+       NEWS CARDS
+       ===================================================== */
 
     .news-card {
         background: #0c1929;
@@ -305,6 +422,11 @@ st.markdown(
         line-height: 1.6;
     }
 
+
+    /* =====================================================
+       EMPTY STATE
+       ===================================================== */
+
     .empty-state {
         background: #0d1b2e;
         border: 1px solid #1d3654;
@@ -331,11 +453,21 @@ st.markdown(
         line-height: 1.7;
     }
 
+
+    /* =====================================================
+       DIVIDER
+       ===================================================== */
+
     .soft-divider {
         height: 1px;
         background: #1b3047;
         margin: 32px 0 26px 0;
     }
+
+
+    /* =====================================================
+       FOOTER
+       ===================================================== */
 
     .footer {
         color: #60758c;
@@ -359,18 +491,22 @@ st.markdown(
 st.html(
     """
 <div class="hero-box">
+
     <div class="hero-badge">
         ✨ AI-POWERED RESEARCH
     </div>
+
     <div class="hero-title">
         📰 News Research Tool
     </div>
+
     <div class="hero-subtitle">
         Turn news into focused research intelligence.
         Search companies, markets, sectors, and business topics,
         then let AI identify the most important developments
         and potential implications.
     </div>
+
 </div>
 """
 )
@@ -394,6 +530,7 @@ search_col, button_col = st.columns(
 )
 
 with search_col:
+
     query = st.text_input(
         "Research Query",
         placeholder=(
@@ -404,6 +541,7 @@ with search_col:
     )
 
 with button_col:
+
     research_clicked = st.button(
         "🔎 Research",
         type="primary",
@@ -433,19 +571,25 @@ suggestion_rows = [
     suggestions[4:],
 ]
 
-for row_index, row in enumerate(suggestion_rows):
+for row_index, row in enumerate(
+    suggestion_rows
+):
+
     suggestion_cols = st.columns(4)
 
     for column, suggestion in zip(
         suggestion_cols,
         row,
     ):
+
         with column:
+
             if st.button(
                 suggestion,
                 use_container_width=True,
                 key=f"suggestion_{row_index}_{suggestion}",
             ):
+
                 query = suggestion
                 research_clicked = True
 
@@ -454,11 +598,17 @@ for row_index, row in enumerate(suggestion_rows):
 # RESEARCH SETTINGS
 # =========================================================
 
-with st.expander("⚙️ Research Settings", expanded=False):
+with st.expander(
+    "⚙️ Research Settings",
+    expanded=False,
+):
 
-    settings_col1, settings_col2, settings_col3 = st.columns(3)
+    settings_col1, settings_col2, settings_col3 = (
+        st.columns(3)
+    )
 
     with settings_col1:
+
         max_articles = st.slider(
             "Articles to analyze",
             min_value=5,
@@ -470,6 +620,7 @@ with st.expander("⚙️ Research Settings", expanded=False):
         page_size = 20
 
     with settings_col2:
+
         research_period = st.selectbox(
             "Research period",
             options=[
@@ -482,6 +633,7 @@ with st.expander("⚙️ Research Settings", expanded=False):
         )
 
     with settings_col3:
+
         research_language = st.selectbox(
             "Research output language",
             options=[
@@ -493,22 +645,27 @@ with st.expander("⚙️ Research Settings", expanded=False):
         )
 
     if research_period == "All available history":
+
         days_back = None
         period_label = "All available history"
 
     elif research_period == "Last 24 hours":
+
         days_back = 1
         period_label = "Last 24 hours"
 
     elif research_period == "Last 7 days":
+
         days_back = 7
         period_label = "Last 7 days"
 
     else:
+
         days_back = 30
         period_label = "Last 30 days"
 
     if days_back is None:
+
         st.caption(
             "No application-level date filter is applied. "
             "NewsAPI will search the historical range "
@@ -516,6 +673,7 @@ with st.expander("⚙️ Research Settings", expanded=False):
         )
 
     else:
+
         st.caption(
             f"Search for relevant news from the "
             f"{period_label.lower()}."
@@ -523,7 +681,7 @@ with st.expander("⚙️ Research Settings", expanded=False):
 
 
 # =========================================================
-# RESEARCH EXECUTION
+# START NEW RESEARCH
 # =========================================================
 
 if research_clicked:
@@ -555,233 +713,19 @@ if research_clicked:
                     language=research_language,
                 )
 
-                if not result.articles:
+                # ---------------------------------------------
+                # STORE RESULT IN SESSION STATE
+                # ---------------------------------------------
 
-                    escaped_query = html.escape(
-                        result.query
-                    )
+                st.session_state.research_result = result
 
-                    escaped_period = html.escape(
-                        period_label
-                    )
+                st.session_state.research_language = (
+                    research_language
+                )
 
-                    st.html(
-                        f"""
-<div class="empty-state">
-    <div class="empty-icon">🔎</div>
-    <div class="empty-title">
-        No relevant news found
-    </div>
-    <div class="empty-text">
-        We couldn't find relevant coverage for
-        <strong>{escaped_query}</strong>
-        under the selected research period:
-        <strong>{escaped_period}</strong>.
-        <br><br>
-        Try a broader search term, another company,
-        or a different research period.
-    </div>
-</div>
-"""
-                    )
-
-                else:
-
-                    st.html(
-                        """
-<div class="soft-divider"></div>
-<div class="section-label">
-    Research results
-</div>
-"""
-                    )
-
-                    escaped_query = html.escape(
-                        result.query
-                    )
-
-                    st.markdown(
-                        f'## Insights for "{escaped_query}"'
-                    )
-
-                    unique_sources = len(
-                        {
-                            article.source_name
-                            for article in result.articles
-                        }
-                    )
-
-                    (
-                        metric_col1,
-                        metric_col2,
-                        metric_col3,
-                        metric_col4,
-                    ) = st.columns(4)
-
-                    with metric_col1:
-                        st.html(
-                            f"""
-<div class="metric-card">
-    <div class="metric-label">
-        Articles analyzed
-    </div>
-    <div class="metric-value">
-        {len(result.articles)}
-    </div>
-</div>
-"""
-                        )
-
-                    with metric_col2:
-                        st.html(
-                            f"""
-<div class="metric-card">
-    <div class="metric-label">
-        Sources
-    </div>
-    <div class="metric-value">
-        {unique_sources}
-    </div>
-</div>
-"""
-                        )
-
-                    with metric_col3:
-                        st.html(
-                            f"""
-<div class="metric-card">
-    <div class="metric-label">
-        Research period
-    </div>
-    <div class="metric-value">
-        {html.escape(period_label)}
-    </div>
-</div>
-"""
-                        )
-
-                    with metric_col4:
-                        st.html(
-                            f"""
-<div class="metric-card">
-    <div class="metric-label">
-        Output language
-    </div>
-    <div class="metric-value">
-        {html.escape(research_language)}
-    </div>
-</div>
-"""
-                        )
-
-                    st.html(
-                        """
-<div class="summary-card">
-    <div class="summary-label">
-        AI Research Summary
-    </div>
-    <div class="summary-title">
-        🧠 Key Intelligence
-    </div>
-</div>
-"""
-                    )
-
-                    safe_summary = html.escape(
-                        result.summary
-                    )
-
-                    safe_summary = safe_summary.replace(
-                        "\r\n",
-                        "\n",
-                    )
-
-                    safe_summary = safe_summary.replace(
-                        "\r",
-                        "\n",
-                    )
-
-                    safe_summary = safe_summary.replace(
-                        "\n\n",
-                        "<br><br>",
-                    )
-
-                    safe_summary = safe_summary.replace(
-                        "\n",
-                        "<br>",
-                    )
-
-                    st.html(
-                        f"""
-<div class="research-output">
-    {safe_summary}
-</div>
-"""
-                    )
-
-                    st.html(
-                        """
-<div class="soft-divider"></div>
-<div class="section-label">
-    News coverage
-</div>
-"""
-                    )
-
-                    st.markdown(
-                        "## 🗞️ Sources"
-                    )
-
-                    for index, article in enumerate(
-                        result.articles,
-                        start=1,
-                    ):
-
-                        title = html.escape(
-                            article.title
-                        )
-
-                        source = html.escape(
-                            article.source_name
-                        )
-
-                        description = html.escape(
-                            article.description
-                            or "No description available."
-                        )
-
-                        published = (
-                            article.published_at.strftime(
-                                "%d %b %Y, %H:%M"
-                            )
-                        )
-
-                        st.html(
-                            f"""
-<div class="news-card">
-    <div class="news-meta">
-        <span class="source-badge">
-            {source}
-        </span>
-        &nbsp; • &nbsp;
-        {published}
-    </div>
-
-    <div class="news-title">
-        {index}. {title}
-    </div>
-
-    <div class="news-description">
-        {description}
-    </div>
-</div>
-"""
-                        )
-
-                        st.link_button(
-                            "Read full article →",
-                            str(article.url),
-                        )
+                st.session_state.period_label = (
+                    period_label
+                )
 
             except Exception as exc:
 
@@ -793,7 +737,382 @@ if research_clicked:
                 with st.expander(
                     "Technical details"
                 ):
+
                     st.exception(exc)
+
+
+# =========================================================
+# DISPLAY STORED RESEARCH RESULT
+# =========================================================
+
+result = st.session_state.research_result
+
+if result is not None:
+
+    current_language = (
+        st.session_state.research_language
+    )
+
+    current_period = (
+        st.session_state.period_label
+    )
+
+    # =====================================================
+    # NO RESULTS
+    # =====================================================
+
+    if not result.articles:
+
+        escaped_query = html.escape(
+            result.query
+        )
+
+        escaped_period = html.escape(
+            current_period
+        )
+
+        st.html(
+            f"""
+<div class="empty-state">
+
+    <div class="empty-icon">
+        🔎
+    </div>
+
+    <div class="empty-title">
+        No relevant news found
+    </div>
+
+    <div class="empty-text">
+
+        We couldn't find relevant coverage for
+        <strong>{escaped_query}</strong>
+        under the selected research period:
+        <strong>{escaped_period}</strong>.
+
+        <br><br>
+
+        Try a broader search term, another company,
+        or a different research period.
+
+    </div>
+
+</div>
+"""
+        )
+
+    # =====================================================
+    # RESULTS
+    # =====================================================
+
+    else:
+
+        st.html(
+            """
+<div class="soft-divider"></div>
+
+<div class="section-label">
+    Research results
+</div>
+"""
+        )
+
+        escaped_query = html.escape(
+            result.query
+        )
+
+        st.markdown(
+            f'## Insights for "{escaped_query}"'
+        )
+
+        unique_sources = len(
+            {
+                article.source_name
+                for article in result.articles
+            }
+        )
+
+        (
+            metric_col1,
+            metric_col2,
+            metric_col3,
+            metric_col4,
+        ) = st.columns(4)
+
+        # =================================================
+        # METRIC 1
+        # =================================================
+
+        with metric_col1:
+
+            st.html(
+                f"""
+<div class="metric-card">
+
+    <div class="metric-label">
+        Articles analyzed
+    </div>
+
+    <div class="metric-value">
+        {len(result.articles)}
+    </div>
+
+</div>
+"""
+            )
+
+        # =================================================
+        # METRIC 2
+        # =================================================
+
+        with metric_col2:
+
+            st.html(
+                f"""
+<div class="metric-card">
+
+    <div class="metric-label">
+        Sources
+    </div>
+
+    <div class="metric-value">
+        {unique_sources}
+    </div>
+
+</div>
+"""
+            )
+
+        # =================================================
+        # METRIC 3
+        # =================================================
+
+        with metric_col3:
+
+            st.html(
+                f"""
+<div class="metric-card">
+
+    <div class="metric-label">
+        Research period
+    </div>
+
+    <div class="metric-value">
+        {html.escape(current_period)}
+    </div>
+
+</div>
+"""
+            )
+
+        # =================================================
+        # METRIC 4
+        # =================================================
+
+        with metric_col4:
+
+            st.html(
+                f"""
+<div class="metric-card">
+
+    <div class="metric-label">
+        Output language
+    </div>
+
+    <div class="metric-value">
+        {html.escape(current_language)}
+    </div>
+
+</div>
+"""
+            )
+
+        # =================================================
+        # AI SUMMARY HEADER
+        # =================================================
+
+        st.html(
+            """
+<div class="summary-card">
+
+    <div class="summary-label">
+        AI Research Summary
+    </div>
+
+    <div class="summary-title">
+        🧠 Key Intelligence
+    </div>
+
+</div>
+"""
+        )
+
+        # =================================================
+        # SAFE SUMMARY RENDERING
+        # =================================================
+
+        safe_summary = html.escape(
+            result.summary
+        )
+
+        safe_summary = safe_summary.replace(
+            "\r\n",
+            "\n",
+        )
+
+        safe_summary = safe_summary.replace(
+            "\r",
+            "\n",
+        )
+
+        safe_summary = safe_summary.replace(
+            "\n\n",
+            "<br><br>",
+        )
+
+        safe_summary = safe_summary.replace(
+            "\n",
+            "<br>",
+        )
+
+        st.html(
+            f"""
+<div class="research-output">
+    {safe_summary}
+</div>
+"""
+        )
+
+        # =================================================
+        # EXPORT SECTION
+        # =================================================
+
+        st.html(
+            """
+<div class="soft-divider"></div>
+
+<div class="section-label">
+    Export research
+</div>
+"""
+        )
+
+        research_report = build_research_report(
+            query=result.query,
+            language=current_language,
+            period_label=current_period,
+            articles=result.articles,
+            summary=result.summary,
+        )
+
+        articles_csv = build_articles_csv(
+            result.articles
+        )
+
+        download_col1, download_col2 = (
+            st.columns(2)
+        )
+
+        with download_col1:
+
+            st.download_button(
+                label="📥 Download Research Report",
+                data=research_report,
+                file_name="news_research_report.txt",
+                mime="text/plain",
+                use_container_width=True,
+                key="download_research_report",
+            )
+
+        with download_col2:
+
+            st.download_button(
+                label="📊 Download Articles",
+                data=articles_csv,
+                file_name="news_articles.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_articles_csv",
+            )
+
+        # =================================================
+        # NEWS COVERAGE
+        # =================================================
+
+        st.html(
+            """
+<div class="soft-divider"></div>
+
+<div class="section-label">
+    News coverage
+</div>
+"""
+        )
+
+        st.markdown(
+            "## 🗞️ Sources"
+        )
+
+        for index, article in enumerate(
+            result.articles,
+            start=1,
+        ):
+
+            title = html.escape(
+                article.title
+            )
+
+            source = html.escape(
+                article.source_name
+            )
+
+            description = html.escape(
+                article.description
+                or "No description available."
+            )
+
+            published = (
+                article.published_at.strftime(
+                    "%d %b %Y, %H:%M"
+                )
+            )
+
+            st.html(
+                f"""
+<div class="news-card">
+
+    <div class="news-meta">
+
+        <span class="source-badge">
+            {source}
+        </span>
+
+        &nbsp; • &nbsp;
+
+        {published}
+
+    </div>
+
+    <div class="news-title">
+
+        {index}. {title}
+
+    </div>
+
+    <div class="news-description">
+
+        {description}
+
+    </div>
+
+</div>
+"""
+            )
+
+            st.link_button(
+                "Read full article →",
+                str(article.url),
+            )
 
 
 # =========================================================
