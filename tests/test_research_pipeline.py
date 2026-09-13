@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+import pytest
+
 from src.news.models import NewsArticle
 from src.pipeline.research import ResearchPipeline
 
@@ -58,6 +60,8 @@ class FakeLLMClient:
         assert "Nvidia AI" in prompt
         assert "Nvidia expands AI strategy" in prompt
         assert "Example News" in prompt
+        assert "RESEARCH OUTPUT LANGUAGE:" in prompt
+        assert "English" in prompt
 
         return (
             "Executive Summary\n\n"
@@ -189,37 +193,75 @@ def test_research_pipeline_builds_prompt():
     )
 
     assert "Nvidia AI" in prompt
-
-    assert (
-        "Nvidia expands AI strategy"
-        in prompt
-    )
-
+    assert "Nvidia expands AI strategy" in prompt
     assert "Example News" in prompt
-
+    assert "RESEARCH OUTPUT LANGUAGE:" in prompt
+    assert "English" in prompt
     assert "Executive Summary" in prompt
-
     assert "Key Developments" in prompt
+    assert "Companies / Markets Affected" in prompt
+    assert "Business & Market Implications" in prompt
+    assert "Risks / Contradictions" in prompt
+    assert "Research Takeaway" in prompt
 
+
+def test_research_pipeline_builds_hindi_prompt():
+
+    articles = [
+        create_test_article()
+    ]
+
+    prompt = ResearchPipeline._build_prompt(
+        "Nvidia AI",
+        articles,
+        language="Hindi",
+    )
+
+    assert "RESEARCH OUTPUT LANGUAGE:" in prompt
+    assert "Hindi" in prompt
     assert (
-        "Companies / Markets Affected"
+        "Generate the complete research response "
+        "in Hindi."
         in prompt
     )
 
+
+def test_research_pipeline_builds_marathi_prompt():
+
+    articles = [
+        create_test_article()
+    ]
+
+    prompt = ResearchPipeline._build_prompt(
+        "Nvidia AI",
+        articles,
+        language="Marathi",
+    )
+
+    assert "RESEARCH OUTPUT LANGUAGE:" in prompt
+    assert "Marathi" in prompt
     assert (
-        "Business & Market Implications"
+        "Generate the complete research response "
+        "in Marathi."
         in prompt
     )
 
-    assert (
-        "Risks / Contradictions"
-        in prompt
+
+def test_research_pipeline_rejects_unsupported_language():
+
+    pipeline = ResearchPipeline(
+        news_client=FakeNewsClient(),
+        llm_client=FakeLLMClient(),
     )
 
-    assert (
-        "Research Takeaway"
-        in prompt
-    )
+    with pytest.raises(
+        ValueError,
+        match="Unsupported research language",
+    ):
+        pipeline.research(
+            "Nvidia AI",
+            language="French",
+        )
 
 
 def test_clean_summary_removes_markdown_formatting():
@@ -245,23 +287,14 @@ The company also launched *Personal AI Router*.
     )
 
     assert "##" not in cleaned
-
     assert "###" not in cleaned
-
     assert "`" not in cleaned
-
     assert "**" not in cleaned
-
     assert "*" not in cleaned
-
     assert "[The Verge]" not in cleaned
-
     assert "12.9 billion" in cleaned
-
     assert "Hugging Face" in cleaned
-
     assert "Personal AI Router" in cleaned
-
     assert "The Verge" in cleaned
 
 
@@ -303,32 +336,9 @@ expansion of Nvidia's AI strategy.
         raw_summary
     )
 
-    assert (
-        "Executive Summary"
-        in cleaned
-    )
-
-    assert (
-        "Key Developments"
-        in cleaned
-    )
-
-    assert (
-        "Companies / Markets Affected"
-        in cleaned
-    )
-
-    assert (
-        "Business & Market Implications"
-        in cleaned
-    )
-
-    assert (
-        "Risks / Contradictions"
-        in cleaned
-    )
-
-    assert (
-        "Research Takeaway"
-        in cleaned
-    )
+    assert "Executive Summary" in cleaned
+    assert "Key Developments" in cleaned
+    assert "Companies / Markets Affected" in cleaned
+    assert "Business & Market Implications" in cleaned
+    assert "Risks / Contradictions" in cleaned
+    assert "Research Takeaway" in cleaned

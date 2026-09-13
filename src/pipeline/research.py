@@ -19,6 +19,12 @@ class ResearchResult:
 class ResearchPipeline:
     """Orchestrates news retrieval and LLM summarization."""
 
+    SUPPORTED_LANGUAGES = {
+        "English",
+        "Hindi",
+        "Marathi",
+    }
+
     def __init__(
         self,
         news_client: NewsClient | None = None,
@@ -38,6 +44,7 @@ class ResearchPipeline:
         page_size: int = 10,
         days_back: int | None = None,
         max_articles: int = 50,
+        language: str = "English",
     ) -> ResearchResult:
         """
         Retrieve relevant news and generate an
@@ -49,6 +56,14 @@ class ResearchPipeline:
         if not query:
             raise ValueError(
                 "Research query cannot be empty."
+            )
+
+        language = language.strip()
+
+        if language not in self.SUPPORTED_LANGUAGES:
+            raise ValueError(
+                "Unsupported research language. "
+                "Choose English, Hindi, or Marathi."
             )
 
         articles = self.news_client.search(
@@ -68,8 +83,9 @@ class ResearchPipeline:
             )
 
         prompt = self._build_prompt(
-            query,
-            articles,
+            query=query,
+            articles=articles,
+            language=language,
         )
 
         raw_summary = self.llm_client.invoke(
@@ -100,10 +116,6 @@ class ResearchPipeline:
 
         cleaned = summary.strip()
 
-        # -------------------------------------------------
-        # Remove code fences.
-        # -------------------------------------------------
-
         cleaned = re.sub(
             r"```(?:markdown|md|text|plain)?",
             "",
@@ -116,44 +128,17 @@ class ResearchPipeline:
             "",
         )
 
-        # -------------------------------------------------
-        # Remove inline code formatting.
-        #
-        # `12.9 billion`
-        # ->
-        # 12.9 billion
-        # -------------------------------------------------
-
         cleaned = re.sub(
             r"`+([^`]+)`+",
             r"\1",
             cleaned,
         )
 
-        # -------------------------------------------------
-        # Remove Markdown links.
-        #
-        # [Nvidia](https://example.com)
-        # ->
-        # Nvidia
-        # -------------------------------------------------
-
         cleaned = re.sub(
             r"\[([^\]]+)\]\([^)]+\)",
             r"\1",
             cleaned,
         )
-
-        # -------------------------------------------------
-        # Remove Markdown emphasis.
-        #
-        # **text**
-        # *text*
-        # __text__
-        # _text_
-        # ->
-        # text
-        # -------------------------------------------------
 
         cleaned = re.sub(
             r"\*\*(.*?)\*\*",
@@ -183,10 +168,6 @@ class ResearchPipeline:
             flags=re.DOTALL,
         )
 
-        # -------------------------------------------------
-        # Remove remaining Markdown heading markers.
-        # -------------------------------------------------
-
         cleaned_lines = []
 
         for line in cleaned.splitlines():
@@ -205,20 +186,10 @@ class ResearchPipeline:
             cleaned_lines
         )
 
-        # -------------------------------------------------
-        # Remove remaining formatting characters that
-        # should never appear in our presentation-neutral
-        # research output.
-        # -------------------------------------------------
-
         cleaned = cleaned.replace(
             "`",
             "",
         )
-
-        # -------------------------------------------------
-        # Normalize excessive blank lines.
-        # -------------------------------------------------
 
         cleaned = re.sub(
             r"\n{3,}",
@@ -232,10 +203,17 @@ class ResearchPipeline:
     def _build_prompt(
         query: str,
         articles: list[NewsArticle],
+        language: str = "English",
     ) -> str:
         """
         Build a structured research prompt for the LLM.
         """
+
+        if language not in ResearchPipeline.SUPPORTED_LANGUAGES:
+            raise ValueError(
+                "Unsupported research language. "
+                "Choose English, Hindi, or Marathi."
+            )
 
         article_text = format_articles(
             articles
@@ -253,6 +231,17 @@ Therefore, return clean plain text only.
 
 USER RESEARCH QUERY:
 {query}
+
+RESEARCH OUTPUT LANGUAGE:
+{language}
+
+LANGUAGE REQUIREMENT:
+Generate the complete research response in {language}.
+
+Use the selected language naturally and clearly.
+Keep company names, organization names, product names,
+ticker symbols, technical terms, and proper nouns in
+their commonly recognized form when appropriate.
 
 SOURCE ARTICLES:
 {article_text}
@@ -294,7 +283,8 @@ ANALYSIS RULES
 RESPONSE FORMAT
 ==================================================
 
-Return EXACTLY these six section names:
+Return EXACTLY these six section names in the
+selected research output language:
 
 Executive Summary
 
@@ -307,6 +297,10 @@ Business & Market Implications
 Risks / Contradictions
 
 Research Takeaway
+
+The section names should also be translated into
+the selected language when the selected language
+is Hindi or Marathi.
 
 Do NOT use:
 
@@ -393,7 +387,8 @@ FINAL CHECK
 Before responding, verify that:
 
 - All six sections are present.
-- The response contains no Markdown formatting.
+- The response is written in {language}.
+- There is no Markdown formatting.
 - There are no backticks.
 - There are no Markdown headings.
 - There are no Markdown links.
