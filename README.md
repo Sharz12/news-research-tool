@@ -1,88 +1,123 @@
 # 📰 News Research Tool
 
-An AI-powered news research application that retrieves recent news articles for a user-defined topic and generates a concise research summary using a Groq-hosted LLM.
+An AI-powered news research application that retrieves news articles for a user-defined topic and generates a structured research summary using a Groq-hosted LLM.
 
-The application is designed to support equity research and business analysis by combining real-time news retrieval, article validation, text processing, and LLM-based summarization.
+The application combines real-world news retrieval, article validation, text processing, AI-powered research analysis, multilingual output, visual news coverage, related research recommendations, and downloadable research reports in an interactive Streamlit interface.
 
 ---
 
 ## 🚀 Features
 
-- Search recent news using NewsAPI
-- Validate retrieved articles using Pydantic models
-- Clean and format article content for LLM processing
-- Generate research summaries using Groq
-- Use LangChain for LLM integration
-- Streamlit-based interactive user interface
-- Configurable number of articles
-- Configurable news date range
-- Display article sources and publication dates
-- Automated unit testing with pytest
-- Environment-based API key configuration
+- 🔎 Search news using NewsAPI
+- 🧠 Generate structured AI research summaries using Groq
+- 🔗 LangChain-based LLM integration
+- ✅ Pydantic-based article validation
+- 🧹 Article text cleaning and processing
+- 📊 Configurable number of articles
+- 📅 Configurable research date range
+- 🌐 Multilingual research output
+  - English
+  - Hindi
+  - Marathi
+- 🖼️ Featured research images from retrieved news articles
+- 📰 Images for individual source articles when available
+- 🔗 Direct links to original news articles
+- 🎯 Within-topic related research recommendations
+- 🌍 Broader-context research recommendations
+- 🔄 Click recommendations to launch new research
+- 📄 Downloadable research reports
+- 📊 Downloadable article CSV files
+- 🛡️ Environment-based API key configuration
+- 🧪 Automated testing with pytest
+- 🎨 Interactive Streamlit interface
+- 🔒 Secure handling of API credentials
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
 
 ```text
-User
-  │
-  ▼
-Streamlit UI
-  │
-  ▼
-Research Pipeline
-  │
-  ├──────────────► NewsAPI
-  │                    │
-  │                    ▼
-  │              News Articles
-  │                    │
-  │                    ▼
-  │              Pydantic Validation
-  │                    │
-  │                    ▼
-  │              Article Processing
-  │
-  ▼
-Research Prompt
-  │
-  ▼
-Groq LLM
-  │
-  ▼
-Research Summary
-  │
-  ▼
-Streamlit UI
-```
+                              USER
+                                │
+                                ▼
+                         ┌─────────────┐
+                         │ Streamlit UI│
+                         └──────┬──────┘
+                                │
+                                ▼
+                      ┌──────────────────┐
+                      │ Research Pipeline│
+                      └────────┬─────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                │                             │
+                ▼                             ▼
+        ┌──────────────┐             ┌────────────────┐
+        │   NewsAPI    │             │ Research Prompt│
+        └──────┬───────┘             └───────┬────────┘
+               │                             │
+               ▼                             ▼
+       Raw News Articles                 ┌─────────┐
+               │                         │  Groq   │
+               ▼                         │   LLM   │
+      Pydantic Validation                └────┬────┘
+               │                              │
+               ▼                              │
+      Article Processing                     │
+               │                              │
+               └──────────────┬───────────────┘
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │ Research Result │
+                     └────────┬────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          │                   │                   │
+          ▼                   ▼                   ▼
+    AI Research          News Images       Source Articles
+       Summary
+          │
+          ▼
+ ┌────────────────────────┐
+ │ Related Research       │
+ │ Recommendation Engine  │
+ └───────────┬────────────┘
+             │
+       ┌─────┴──────┐
+       ▼            ▼
+ Within Topic   Broader Context
+       │            │
+       └─────┬──────┘
+             │
+             ▼
+       New Research Query
+             │
+             ▼
+       Research Pipeline
 
----
-
-## 🛠️ Tech Stack
-
-| Technology | Purpose |
-|---|---|
-| Python | Core programming language |
-| Streamlit | Interactive web application |
-| NewsAPI | News article retrieval |
-| LangChain | LLM application framework |
-| Groq | LLM inference |
-| Pydantic | Data validation |
-| Pytest | Automated testing |
-| python-dotenv | Environment variable management |
-
----
-
-## 📁 Project Structure
-
-```text
+             Research Result
+                    │
+             ┌──────┴──────┐
+             ▼             ▼
+       Research Report   Articles CSV
+🛠️ Tech Stack
+Technology	Purpose
+Python	Core programming language
+Streamlit	Interactive web application
+NewsAPI	News article retrieval
+LangChain	LLM application framework
+Groq	LLM inference
+Pydantic	Data validation and structured models
+Pytest	Automated testing
+python-dotenv	Environment variable management
+📁 Project Structure
 news-research-tool/
 │
 ├── newsapp.py
 ├── README.md
 ├── requirements.txt
-├── .env
+├── .env.example
 ├── .gitignore
 │
 ├── config/
@@ -113,9 +148,17 @@ news-research-tool/
 │   │   ├── __init__.py
 │   │   └── research.py
 │   │
-│   └── processing/
+│   ├── processing/
+│   │   ├── __init__.py
+│   │   └── articles.py
+│   │
+│   ├── recommendations/
+│   │   ├── __init__.py
+│   │   └── related.py
+│   │
+│   └── export/
 │       ├── __init__.py
-│       └── articles.py
+│       └── reports.py
 │
 └── tests/
     ├── test_config.py
@@ -123,147 +166,239 @@ news-research-tool/
     ├── test_news_exceptions.py
     ├── test_llm_client.py
     ├── test_research_pipeline.py
-    └── test_article_processing.py
-```
+    ├── test_article_processing.py
+    ├── test_reports.py
+    └── test_related.py
 
----
+The .env file is intentionally excluded from version control and should be created locally.
 
-## ⚙️ Installation
-
-### 1. Clone the repository
-
-```bash
+⚙️ Installation
+1. Clone the repository
 git clone <your-github-repository-url>
 cd news-research-tool
-```
-
-### 2. Create a virtual environment
+2. Create a virtual environment
 
 On Windows PowerShell:
 
-```powershell
 python -m venv .venv
-```
-
-### 3. Activate the virtual environment
-
-```powershell
+3. Activate the virtual environment
 .\.venv\Scripts\Activate.ps1
-```
-
-### 4. Install dependencies
-
-```powershell
+4. Install dependencies
 python -m pip install -r requirements.txt
-```
-
----
-
-## 🔑 API Configuration
+🔑 API Configuration
 
 The application requires API credentials for:
 
-- NewsAPI
-- Groq
+NewsAPI
+Groq
 
-Create a `.env` file in the project root:
+Create a .env file in the project root:
 
-```text
 NEWSAPI_KEY=your_newsapi_key
 GROQ_API_KEY=your_groq_api_key
 GROQ_MODEL=openai/gpt-oss-120b
-```
+Security
 
-### Security
+Never commit the .env file to Git.
 
-Never commit your `.env` file to Git.
+The .gitignore file excludes:
 
-The project `.gitignore` is configured to exclude:
-
-```text
 .env
-```
 
-Never hard-code API keys directly into Python source files.
+API keys should never be:
 
----
+Hard-coded in Python source files
+Committed to Git
+Included in documentation
+Shared publicly
 
-## ▶️ Running the Application
+A safe configuration template is provided as:
+
+.env.example
+▶️ Running the Application
 
 Make sure the virtual environment is activated.
 
 Start the Streamlit application:
 
-```powershell
 python -m streamlit run .\newsapp.py
-```
 
-Streamlit will provide a local URL in the terminal and open the application in your browser.
+Streamlit will provide a local URL in the terminal and open the application in the browser.
 
-### Example Queries
+🔎 Using the Application
 
-You can search for topics such as:
+Enter a company, market, sector, industry, or general news topic.
 
-```text
+Example Queries
 Tesla
-```
-
-```text
 Nvidia AI
-```
-
-```text
 Indian banking sector
-```
+Air India
+Nepal news on weather
 
-```text
-Microsoft earnings
-```
+The application allows the user to configure:
 
-After entering a query:
+Number of articles
+Research period
+Output language
+Supported Languages
+English
+Hindi
+Marathi
+Research Process
+Enter a research topic.
+Select the number of articles.
+Select the research period.
+Select the output language.
+Click Research.
+NewsAPI retrieves relevant articles.
+Retrieved articles are validated using Pydantic.
+Article content is cleaned and formatted.
+The processed articles are passed to the research pipeline.
+A structured research prompt is created.
+The prompt is sent to the Groq LLM through LangChain.
+The AI-generated research summary is displayed.
+Relevant news imagery is displayed when available.
+Source articles are displayed with publication information and images.
+Related research recommendations are generated.
+Users can click recommendations to launch new research.
+Research results can be exported as a report or CSV.
+🧠 AI Research Summary
 
-1. Select the number of articles.
-2. Select the news date range.
-3. Click **Research News**.
-4. The application retrieves relevant news articles.
-5. The articles are processed and sent to the Groq LLM.
-6. The generated research summary is displayed.
-7. Article sources and publication information are displayed below the summary.
+The application uses a structured research prompt designed to assist with business and equity research analysis.
 
----
+The generated research summary contains six sections:
 
-## 🧪 Running Tests
+Executive Summary
+Key Developments
+Companies / Markets Affected
+Business & Market Implications
+Risks / Contradictions
+Research Takeaway
+Research Grounding
 
-Run the complete automated test suite:
+The LLM is instructed to:
 
-```powershell
-python -m pytest
-```
+Use only information supported by the retrieved articles
+Avoid inventing facts
+Avoid inventing numbers
+Avoid inventing events
+Avoid unsupported conclusions
+Distinguish reported facts from implications
+Use cautious language when evidence is uncertain
+Identify contradictions or differences between sources
+Avoid providing investment advice
 
-The test suite covers:
+The generated response is also sanitized before being displayed in the Streamlit interface.
 
-- Configuration handling
-- NewsAPI client behavior
-- NewsAPI error handling
-- LLM client behavior
-- Research pipeline
-- Article processing
-- Input validation
-- Empty-result handling
+🌐 Multilingual Research
 
-### Current Test Status
+The application supports AI research output in:
 
-```text
-24 passed
-```
+English
+Hindi
+Marathi
 
----
+English is the default language.
 
-## 🔄 Research Workflow
+The selected language is passed into the research prompt so that the generated research summary is returned in the user's selected language.
 
-The application follows this workflow:
+🖼️ News Images
 
-```text
+The application uses image URLs provided by retrieved news articles when available.
+
+Featured Research Image
+
+A relevant image from the retrieved article set is displayed near the AI Research Summary.
+
+Source Article Images
+
+Individual source article cards display their corresponding images when available.
+
+This implementation uses existing article imagery rather than a separate AI image-generation service, reducing additional API dependencies, latency, and cost.
+
+🎯 Related Research Recommendations
+
+After a successful research query, the application uses the LLM to generate additional research paths.
+
+Recommendations are divided into two categories.
+
+🎯 Within This Topic
+
+These recommendations remain closely related to the original topic.
+
+They may include:
+
+Related companies
+Products
+Locations
+Events
+Subtopics
+Industries
+Business developments
+🌍 Broader Context
+
+These recommendations expand the research into related:
+
+Countries
+Regions
+Markets
+Competitors
+Industries
+Global developments
+Example
+
+For a query such as:
+
+weather in USA
+
+the application can generate related research such as:
+
+Within this topic:
+- California weather
+- Texas weather
+- Florida weather
+- New York weather
+
+Broader context:
+- Weather in India
+- Weather in the UK
+- Weather in Japan
+- Weather in Australia
+
+Recommendations are generated dynamically rather than being limited to a hard-coded list.
+
+Clicking a recommendation launches a new research query through the same research pipeline.
+
+📥 Export and Downloads
+
+The application provides two export options.
+
+📄 Research Report
+
+The research report contains:
+
+Research query
+Output language
+Research period
+Number of articles analyzed
+Number of sources
+AI research summary
+Source article information
+Article URLs
+📊 Articles CSV
+
+The CSV export contains:
+
+Title
+Source
+Published date
+Description
+URL
+
+These exports allow users to retain, share, and further analyze their research results.
+
+🔄 End-to-End Research Workflow
 User Query
     │
     ▼
@@ -291,201 +426,284 @@ Research Prompt
 Groq LLM via LangChain
     │
     ▼
-AI-Generated Summary
+AI Research Summary
     │
-    ▼
-Streamlit Results
-```
+    ├──────────────► Featured News Image
+    │
+    ├──────────────► Source Articles
+    │
+    ├──────────────► Related Research
+    │
+    └──────────────► Export / Download
+🧩 Core Components
+News Client
 
-### Detailed Process
+Location:
 
-1. The user enters a research query.
-2. The Streamlit application passes the query to `ResearchPipeline`.
-3. `NewsClient` sends the query to NewsAPI.
-4. Retrieved articles are converted into validated `NewsArticle` objects.
-5. Invalid articles are safely skipped.
-6. Article descriptions and content are cleaned and normalized.
-7. Article information is formatted into LLM-ready text.
-8. A research prompt is constructed using the user query and retrieved articles.
-9. The prompt is sent to the Groq LLM through `GroqClient`.
-10. The generated summary is returned to the research pipeline.
-11. Streamlit displays the summary and article sources.
-
----
-
-## 🧠 Research Prompt
-
-The application instructs the LLM to act as an AI assistant helping an equity research analyst.
-
-The generated summary focuses on:
-
-- Important developments
-- Companies, organizations, or markets affected
-- Potential business or market implications
-- Differences or conflicting information between articles
-
-The prompt also instructs the model to:
-
-- Use only information supported by the provided articles
-- Avoid inventing facts
-- Avoid inventing numbers
-- Avoid inventing events
-- Avoid unsupported conclusions
-
-This helps keep the generated research summary grounded in the retrieved news content.
-
----
-
-## 🧩 Core Components
-
-### News Client
-
-Located at:
-
-```text
 src/news/client.py
-```
 
 Responsible for:
 
-- Communicating with NewsAPI
-- Validating search parameters
-- Retrieving recent articles
-- Handling API errors
-- Converting API responses into validated models
+Communicating with NewsAPI
+Validating search parameters
+Retrieving news articles
+Supporting configurable date ranges
+Supporting article limits
+Removing duplicate articles
+Handling NewsAPI errors
+Converting API responses into validated models
+News Article Model
 
-### News Article Model
+Location:
 
-Located at:
-
-```text
 src/news/models.py
-```
 
 Uses Pydantic to provide structured validation for:
 
-- Title
-- Description
-- Content
-- Source
-- Author
-- URL
-- Image URL
-- Publication date
+Title
+Description
+Content
+Source
+Author
+URL
+Image URL
+Publication date
+News Exceptions
 
-### Article Processing
+Location:
 
-Located at:
+src/news/exceptions.py
 
-```text
+Defines application-specific exceptions for:
+
+Authentication failures
+Rate limiting
+Request failures
+Invalid API responses
+
+This keeps NewsAPI error handling explicit and easier to test.
+
+Article Processing
+
+Location:
+
 src/processing/articles.py
-```
 
 Responsible for:
 
-- Cleaning whitespace
-- Truncating long article text
-- Formatting individual articles
-- Combining multiple articles into LLM-ready context
+Cleaning whitespace
+Truncating long article text
+Formatting individual articles
+Combining multiple articles into LLM-ready context
+Groq Client
 
-### Groq Client
+Location:
 
-Located at:
-
-```text
 src/llm/client.py
-```
 
 Responsible for:
 
-- Initializing the Groq LLM
-- Validating prompts
-- Sending requests through LangChain
-- Returning generated responses
-- Handling LLM failures
+Initializing the Groq LLM
+Validating prompts
+Sending requests through LangChain
+Returning generated responses
+Handling LLM failures
+Research Pipeline
 
-### Research Pipeline
+Location:
 
-Located at:
-
-```text
 src/pipeline/research.py
-```
 
-Acts as the orchestration layer between:
+Acts as the main orchestration layer between:
 
-```text
-NewsAPI → Article Processing → Groq LLM
-```
+NewsAPI
+    ↓
+Article Validation
+    ↓
+Article Processing
+    ↓
+Research Prompt
+    ↓
+Groq LLM
+    ↓
+Research Result
 
-It returns a structured research result containing:
+The pipeline returns a structured research result containing:
 
-- Original query
-- Retrieved articles
-- Generated summary
+Original query
+Retrieved articles
+Generated summary
 
----
+The pipeline also supports:
 
-## 🔐 Security
+Configurable article limits
+Configurable date ranges
+English output
+Hindi output
+Marathi output
+Safe summary rendering
+Related Research Generator
 
-API credentials are loaded from environment variables using `python-dotenv`.
+Location:
+
+src/recommendations/related.py
+
+Responsible for:
+
+Generating related research queries
+Creating within-topic recommendations
+Creating broader-context recommendations
+Parsing structured LLM output
+Removing duplicate recommendations
+Limiting recommendation counts
+Handling invalid LLM responses safely
+Export Module
+
+Location:
+
+src/export/reports.py
+
+Responsible for generating:
+
+Research report exports
+Article CSV exports
+🧪 Testing
+
+Run the complete automated test suite:
+
+python -m pytest -q
+Current Test Status
+42 passed
+Test Coverage Areas
+
+The automated tests cover:
+
+Configuration handling
+NewsAPI client behavior
+NewsAPI authentication errors
+NewsAPI rate-limit errors
+NewsAPI request errors
+Invalid NewsAPI responses
+LLM client behavior
+Empty prompt validation
+Research pipeline
+Article processing
+Input validation
+Empty-result handling
+Multilingual research output
+Research report generation
+CSV generation
+Related research generation
+Recommendation parsing
+Duplicate recommendation handling
+Recommendation limits
+🔍 Validation and Quality Checks
+
+The application has been validated through both automated tests and manual end-to-end testing.
+
+Automated Validation
+Pytest Tests: 42 passed
+Python Compilation: Passed
+Manual Validation
+
+The following workflows have been tested successfully:
+
+Normal News Research
+        ↓
+AI Research Summary
+        ↓
+Featured News Image
+        ↓
+Source Article Images
+        ↓
+Related Research
+        ↓
+Recommendation Click
+        ↓
+Fresh Research Query
+        ↓
+New AI Summary + Images
+
+Additional manual validation includes:
+
+English research output
+Hindi research output
+Non-technical/general-audience topics
+Empty search validation
+Research report download
+Articles CSV download
+Recommendation-driven research
+🛡️ Security
+
+API credentials are loaded from environment variables using python-dotenv.
 
 Sensitive credentials should never be:
 
-- Hard-coded in source code
-- Committed to Git
-- Included in documentation
-- Shared publicly
+Hard-coded in source code
+Committed to Git
+Included in documentation
+Shared publicly
 
-The `.env` file is excluded from version control through `.gitignore`.
+The .env file is excluded from version control through .gitignore.
 
----
+The project provides:
 
-## 📊 Current Project Status
+.env.example
+
+as a safe configuration template.
+
+📊 Project Status
 
 The project currently includes:
 
-- ✅ NewsAPI integration
-- ✅ Groq LLM integration
-- ✅ LangChain integration
-- ✅ Pydantic article validation
-- ✅ Article text processing
-- ✅ Research pipeline
-- ✅ Streamlit application
-- ✅ Automated testing
-- ✅ Environment-based configuration
-- ✅ Clean dependency management
-- ✅ Git version control
-
-### Validation
-
-```text
-Automated Tests: 24 passed
+✅ NewsAPI integration
+✅ Groq LLM integration
+✅ LangChain integration
+✅ Pydantic article validation
+✅ Article text processing
+✅ Research pipeline
+✅ Streamlit application
+✅ Configurable article count
+✅ Configurable research period
+✅ English research output
+✅ Hindi research output
+✅ Marathi research output
+✅ Featured news images
+✅ Source article images
+✅ Related research recommendations
+✅ Within-topic recommendations
+✅ Broader-context recommendations
+✅ Recommendation-driven new research
+✅ Research report export
+✅ Article CSV export
+✅ Automated testing
+✅ Environment-based configuration
+✅ Clean dependency management
+✅ Git version control
+✅ Input validation
+✅ Error handling
+Final Validation
+Automated Tests: 42 passed
+Python Compilation: Passed
 Streamlit Application: Working
 NewsAPI Integration: Working
 Groq LLM Integration: Working
-```
-
----
-
-## 🔮 Future Enhancements
+Multilingual Output: Working
+Related Research: Working
+Recommendation Loop: Working
+Exports: Working
+News Images: Working
+Input Validation: Working
+🔮 Future Enhancements
 
 Potential future improvements include:
 
-- User authentication
-- Improved Streamlit UI/UX
-- Article deduplication
-- Research result caching
-- Save and export research results
-- Historical query analysis
-- Improved source presentation
-- Advanced filtering by source or category
-- Cloud deployment
-- Additional LLM providers
-- More comprehensive integration testing
-
----
-
-## 📄 License
-
-This project is intended for educational and portfolio purposes.
+User authentication
+Research result caching
+Historical query analysis
+Advanced filtering by source
+Source credibility scoring
+Cloud deployment
+Additional LLM providers
+More comprehensive integration testing
+Persistent user research history

@@ -7,6 +7,7 @@ from src.export.reports import (
     build_research_report,
 )
 from src.pipeline.research import ResearchPipeline
+from src.recommendations.related import RelatedNewsGenerator
 
 
 # =========================================================
@@ -32,6 +33,30 @@ if "research_language" not in st.session_state:
 
 if "period_label" not in st.session_state:
     st.session_state.period_label = "All available history"
+
+if "related_recommendations" not in st.session_state:
+    st.session_state.related_recommendations = None
+
+if "pending_query" not in st.session_state:
+    st.session_state.pending_query = None
+
+if "trigger_research" not in st.session_state:
+    st.session_state.trigger_research = False
+
+
+# ---------------------------------------------------------
+# Apply a query selected from Related News BEFORE the
+# text-input widget is instantiated.
+# ---------------------------------------------------------
+
+if st.session_state.pending_query is not None:
+
+    st.session_state.research_query = (
+        st.session_state.pending_query
+    )
+
+    st.session_state.pending_query = None
+    st.session_state.trigger_research = True
 
 
 # =========================================================
@@ -422,6 +447,51 @@ st.markdown(
         line-height: 1.6;
     }
 
+    ,news-image {
+        width: 100%;
+        height: 190px;
+        object-fit: cover;
+        border-radius: 10px;
+        margin-bottom: 16px;
+        border: 1px solid #1d344d;
+    }
+
+
+    /* =====================================================
+       RELATED NEWS
+       ===================================================== */
+
+    .related-card {
+        background: #0d1b2e;
+        border: 1px solid #1d3654;
+        border-radius: 16px;
+        padding: 22px 24px;
+        margin-top: 16px;
+        margin-bottom: 12px;
+    }
+
+    .related-label {
+        color: #6ed6ff;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 7px;
+    }
+
+    .related-title {
+        color: #f8fafc;
+        font-size: 1.25rem;
+        font-weight: 800;
+        margin-bottom: 5px;
+    }
+
+    .related-description {
+        color: #8fa3bb;
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
 
     /* =====================================================
        EMPTY STATE
@@ -524,6 +594,7 @@ st.html(
 """
 )
 
+
 search_col, button_col = st.columns(
     [5, 1],
     vertical_alignment="bottom",
@@ -538,6 +609,7 @@ with search_col:
             "or business topic..."
         ),
         label_visibility="collapsed",
+        key="research_query",
     )
 
 with button_col:
@@ -547,6 +619,18 @@ with button_col:
         type="primary",
         use_container_width=True,
     )
+
+
+# ---------------------------------------------------------
+# Trigger research automatically when a related query was
+# selected.
+# ---------------------------------------------------------
+
+if st.session_state.trigger_research:
+
+    research_clicked = True
+
+    st.session_state.trigger_research = False
 
 
 # =========================================================
@@ -589,6 +673,11 @@ for row_index, row in enumerate(
                 use_container_width=True,
                 key=f"suggestion_{row_index}_{suggestion}",
             ):
+
+                # IMPORTANT:
+                # Do not modify st.session_state.research_query
+                # here because the text input widget already
+                # exists in this Streamlit run.
 
                 query = suggestion
                 research_clicked = True
@@ -726,6 +815,48 @@ if research_clicked:
                 st.session_state.period_label = (
                     period_label
                 )
+
+                # ---------------------------------------------
+                # GENERATE RELATED NEWS RECOMMENDATIONS
+                # ---------------------------------------------
+
+                st.session_state.related_recommendations = None
+
+                if result.articles:
+
+                    try:
+
+                        recommendation_generator = (
+                            RelatedNewsGenerator()
+                        )
+
+                        related_recommendations = (
+                            recommendation_generator.generate(
+                                query=result.query,
+                                max_recommendations=4,
+                            )
+                        )
+
+                        st.session_state.related_recommendations = (
+                            related_recommendations
+                        )
+
+                    except Exception as recommendation_exc:
+
+                        st.session_state.related_recommendations = None
+
+                        st.warning(
+                            "Research completed, but related-news "
+                            "recommendations could not be generated."
+                        )
+
+                        with st.expander(
+                            "Recommendation technical details"
+                        ):
+
+                            st.exception(
+                                recommendation_exc
+                            )
 
             except Exception as exc:
 
@@ -947,6 +1078,27 @@ if result is not None:
 """
         )
 
+
+    # ==========================================
+    # FEATURED RESEARCH IMAGE
+    # ==========================================
+
+    featured_image = next(
+        (
+            str(article.image_url)
+            for article in result.articles
+            if article.image_url
+        ),
+        None,
+    )
+
+    if featured_image:
+        st.image(
+            featured_image,
+            caption=f"Featured news image for: {result.query}",
+            use_container_width=True,
+        )
+
         # =================================================
         # SAFE SUMMARY RENDERING
         # =================================================
@@ -982,6 +1134,112 @@ if result is not None:
 </div>
 """
         )
+
+        # =================================================
+        # RELATED NEWS RECOMMENDATIONS
+        # =================================================
+
+        related_recommendations = (
+            st.session_state.related_recommendations
+        )
+
+        if related_recommendations is not None:
+
+            st.html(
+                """
+<div class="soft-divider"></div>
+
+<div class="section-label">
+    Continue your research
+</div>
+
+<div class="related-card">
+
+    <div class="related-label">
+        AI-generated research paths
+    </div>
+
+    <div class="related-title">
+        🔗 Explore related news
+    </div>
+
+    <div class="related-description">
+        Follow a related search to explore the topic
+        through additional locations, entities,
+        industries, or global context.
+    </div>
+
+</div>
+"""
+            )
+
+            # ---------------------------------------------
+            # WITHIN TOPIC
+            # ---------------------------------------------
+
+            if related_recommendations.within_topic:
+
+                st.markdown(
+                    "### 🎯 Within this topic"
+                )
+
+                within_columns = st.columns(2)
+
+                for index, recommendation in enumerate(
+                    related_recommendations.within_topic
+                ):
+
+                    with within_columns[index % 2]:
+
+                        if st.button(
+                            recommendation,
+                            use_container_width=True,
+                            key=(
+                                f"related_within_"
+                                f"{index}_"
+                                f"{result.query}"
+                            ),
+                        ):
+
+                            st.session_state.pending_query = (
+                                recommendation
+                            )
+
+                            st.rerun()
+
+            # ---------------------------------------------
+            # BROADER CONTEXT
+            # ---------------------------------------------
+
+            if related_recommendations.broader_context:
+
+                st.markdown(
+                    "### 🌍 Broader context"
+                )
+
+                broader_columns = st.columns(2)
+
+                for index, recommendation in enumerate(
+                    related_recommendations.broader_context
+                ):
+
+                    with broader_columns[index % 2]:
+
+                        if st.button(
+                            recommendation,
+                            use_container_width=True,
+                            key=(
+                                f"related_broader_"
+                                f"{index}_"
+                                f"{result.query}"
+                            ),
+                        ):
+
+                            st.session_state.pending_query = (
+                                recommendation
+                            )
+
+                            st.rerun()
 
         # =================================================
         # EXPORT SECTION
@@ -1057,6 +1315,18 @@ if result is not None:
             result.articles,
             start=1,
         ):
+            image_html = ""
+
+            if article.image_url:
+                image_url = html.escape(str(article.image_url))
+                image_html = f"""
+                <img
+                    class = "news-image"
+                    src = "{image_url}"
+                    alt = "Article image"
+                    loading = "lazy"
+                >
+                """
 
             title = html.escape(
                 article.title
@@ -1080,6 +1350,8 @@ if result is not None:
             st.html(
                 f"""
 <div class="news-card">
+
+    {image_html}
 
     <div class="news-meta">
 
