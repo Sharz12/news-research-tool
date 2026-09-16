@@ -447,7 +447,7 @@ st.markdown(
         line-height: 1.6;
     }
 
-    ,news-image {
+    .news-image {
         width: 100%;
         height: 190px;
         object-fit: cover;
@@ -1099,54 +1099,54 @@ if result is not None:
             use_container_width=True,
         )
 
-        # =================================================
-        # SAFE SUMMARY RENDERING
-        # =================================================
+    # =================================================
+    # SAFE SUMMARY RENDERING
+    # =================================================
 
-        safe_summary = html.escape(
-            result.summary
-        )
+    safe_summary = html.escape(
+        result.summary
+    )
 
-        safe_summary = safe_summary.replace(
-            "\r\n",
-            "\n",
-        )
+    safe_summary = safe_summary.replace(
+        "\r\n",
+        "\n",
+    )
 
-        safe_summary = safe_summary.replace(
-            "\r",
-            "\n",
-        )
+    safe_summary = safe_summary.replace(
+        "\r",
+        "\n",
+    )
 
-        safe_summary = safe_summary.replace(
-            "\n\n",
-            "<br><br>",
-        )
+    safe_summary = safe_summary.replace(
+        "\n\n",
+        "<br><br>",
+    )
 
-        safe_summary = safe_summary.replace(
-            "\n",
-            "<br>",
-        )
+    safe_summary = safe_summary.replace(
+        "\n",
+        "<br>",
+    )
 
-        st.html(
-            f"""
+    st.html(
+        f"""
 <div class="research-output">
     {safe_summary}
 </div>
 """
-        )
+    )
 
-        # =================================================
-        # RELATED NEWS RECOMMENDATIONS
-        # =================================================
+    # =================================================
+    # RELATED NEWS RECOMMENDATIONS
+    # =================================================
 
-        related_recommendations = (
-            st.session_state.related_recommendations
-        )
+    related_recommendations = (
+        st.session_state.related_recommendations
+    )
 
-        if related_recommendations is not None:
+    if related_recommendations is not None:
 
-            st.html(
-                """
+        st.html(
+            """
 <div class="soft-divider"></div>
 
 <div class="section-label">
@@ -1171,184 +1171,174 @@ if result is not None:
 
 </div>
 """
+        )
+
+        # =================================================
+        # WITHIN TOPIC
+        # =================================================
+
+        if related_recommendations.within_topic:
+            st.markdown(
+                "### 🔎 Within this topic"
             )
 
-            # ---------------------------------------------
-            # WITHIN TOPIC
-            # ---------------------------------------------
+            within_columns = st.columns(2)
 
-            if related_recommendations.within_topic:
+            for index, recommendation in enumerate(
+                related_recommendations.within_topic
+            ):
+                with within_columns[index % 2]:
+                    if st.button(
+                        recommendation,
+                        use_container_width=True,
+                        key=(
+                            f"related_within_"
+                            f"{index}_"
+                            f"{result.query}"
+                        ),
+                    ):
+                        st.session_state.pending_query = (
+                            recommendation
+                        )
 
-                st.markdown(
-                    "### 🎯 Within this topic"
-                )
+                        st.rerun()
 
-                within_columns = st.columns(2)
+        # ---------------------------------------------
+        # BROADER CONTEXT
+        # ---------------------------------------------
 
-                for index, recommendation in enumerate(
-                    related_recommendations.within_topic
-                ):
+        if related_recommendations.broader_context:
+            st.markdown(
+                "### 🌍 Broader context"
+            )
 
-                    with within_columns[index % 2]:
+            broader_columns = st.columns(2)
 
-                        if st.button(
-                            recommendation,
-                            use_container_width=True,
-                            key=(
-                                f"related_within_"
-                                f"{index}_"
-                                f"{result.query}"
-                            ),
-                        ):
+            for index, recommendation in enumerate(
+                related_recommendations.broader_context
+            ):
+                with broader_columns[index % 2]:
+                    if st.button(
+                        recommendation,
+                        use_container_width=True,
+                        key=(
+                            f"related_broader_"
+                            f"{index}_"
+                            f"{result.query}"
+                        ),
+                    ):
+                        st.session_state.pending_query = (
+                            recommendation
+                        )
 
-                            st.session_state.pending_query = (
-                                recommendation
-                            )
+                        st.rerun()
 
-                            st.rerun()
+    # =================================================
+    # EXPORT SECTION
+    # =================================================
 
-            # ---------------------------------------------
-            # BROADER CONTEXT
-            # ---------------------------------------------
-
-            if related_recommendations.broader_context:
-
-                st.markdown(
-                    "### 🌍 Broader context"
-                )
-
-                broader_columns = st.columns(2)
-
-                for index, recommendation in enumerate(
-                    related_recommendations.broader_context
-                ):
-
-                    with broader_columns[index % 2]:
-
-                        if st.button(
-                            recommendation,
-                            use_container_width=True,
-                            key=(
-                                f"related_broader_"
-                                f"{index}_"
-                                f"{result.query}"
-                            ),
-                        ):
-
-                            st.session_state.pending_query = (
-                                recommendation
-                            )
-
-                            st.rerun()
-
-        # =================================================
-        # EXPORT SECTION
-        # =================================================
-
-        st.html(
-            """
+    st.html(
+        """
 <div class="soft-divider"></div>
 
 <div class="section-label">
     Export research
 </div>
 """
+    )
+
+    research_report = build_research_report(
+        query=result.query,
+        language=current_language,
+        period_label=current_period,
+        articles=result.articles,
+        summary=result.summary,
+    )
+
+    articles_csv = build_articles_csv(
+        result.articles
+    )
+
+    download_col1, download_col2 = (
+        st.columns(2)
+    )
+
+    with download_col1:
+        st.download_button(
+            label="📥 Download Research Report",
+            data=research_report,
+            file_name="news_research_report.txt",
+            mime="text/plain",
+            use_container_width=True,
+            key="download_research_report",
         )
 
-        research_report = build_research_report(
-            query=result.query,
-            language=current_language,
-            period_label=current_period,
-            articles=result.articles,
-            summary=result.summary,
+    with download_col2:
+        st.download_button(
+            label="📊 Download Articles",
+            data=articles_csv,
+            file_name="news_articles.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key="download_articles_csv",
         )
 
-        articles_csv = build_articles_csv(
-            result.articles
-        )
+    # =================================================
+    # NEWS COVERAGE
+    # =================================================
 
-        download_col1, download_col2 = (
-            st.columns(2)
-        )
-
-        with download_col1:
-
-            st.download_button(
-                label="📥 Download Research Report",
-                data=research_report,
-                file_name="news_research_report.txt",
-                mime="text/plain",
-                use_container_width=True,
-                key="download_research_report",
-            )
-
-        with download_col2:
-
-            st.download_button(
-                label="📊 Download Articles",
-                data=articles_csv,
-                file_name="news_articles.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="download_articles_csv",
-            )
-
-        # =================================================
-        # NEWS COVERAGE
-        # =================================================
-
-        st.html(
-            """
+    st.html(
+        """
 <div class="soft-divider"></div>
 
 <div class="section-label">
     News coverage
 </div>
 """
+    )
+
+    st.markdown(
+        "## 🗞️ Sources"
+    )
+
+    for index, article in enumerate(
+        result.articles,
+        start=1,
+    ):
+        image_html = ""
+
+        if article.image_url:
+            image_url = html.escape(str(article.image_url))
+            image_html = f"""
+<img
+    class = "news-image"
+    src = "{image_url}"
+    alt = "Article image"
+    loading = "lazy"
+>
+"""
+
+        title = html.escape(
+            article.title
         )
 
-        st.markdown(
-            "## 🗞️ Sources"
+        source = html.escape(
+            article.source_name
         )
 
-        for index, article in enumerate(
-            result.articles,
-            start=1,
-        ):
-            image_html = ""
+        description = html.escape(
+            article.description
+            or "No description available."
+        )
 
-            if article.image_url:
-                image_url = html.escape(str(article.image_url))
-                image_html = f"""
-                <img
-                    class = "news-image"
-                    src = "{image_url}"
-                    alt = "Article image"
-                    loading = "lazy"
-                >
-                """
-
-            title = html.escape(
-                article.title
+        published = (
+            article.published_at.strftime(
+                "%d %b %Y, %H:%M"
             )
+        )
 
-            source = html.escape(
-                article.source_name
-            )
-
-            description = html.escape(
-                article.description
-                or "No description available."
-            )
-
-            published = (
-                article.published_at.strftime(
-                    "%d %b %Y, %H:%M"
-                )
-            )
-
-            st.html(
-                f"""
+        st.html(
+            f"""
 <div class="news-card">
 
     {image_html}
@@ -1379,13 +1369,12 @@ if result is not None:
 
 </div>
 """
-            )
+        )
 
-            st.link_button(
-                "Read full article →",
-                str(article.url),
-            )
-
+        st.link_button(
+            "Read full article →",
+            str(article.url),
+        )
 
 # =========================================================
 # FOOTER
